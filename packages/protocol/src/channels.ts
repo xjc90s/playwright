@@ -324,6 +324,7 @@ export type APIRequestContextFetchParams = {
   failOnStatusCode?: boolean,
   ignoreHTTPSErrors?: boolean,
   maxRedirects?: number,
+  maxRetries?: number,
 };
 export type APIRequestContextFetchOptions = {
   params?: NameValue[],
@@ -337,6 +338,7 @@ export type APIRequestContextFetchOptions = {
   failOnStatusCode?: boolean,
   ignoreHTTPSErrors?: boolean,
   maxRedirects?: number,
+  maxRetries?: number,
 };
 export type APIRequestContextFetchResult = {
   response: APIResponse,
@@ -1458,14 +1460,15 @@ export interface BrowserContextChannel extends BrowserContextEventTarget, EventT
   newCDPSession(params: BrowserContextNewCDPSessionParams, metadata?: CallMetadata): Promise<BrowserContextNewCDPSessionResult>;
   harStart(params: BrowserContextHarStartParams, metadata?: CallMetadata): Promise<BrowserContextHarStartResult>;
   harExport(params: BrowserContextHarExportParams, metadata?: CallMetadata): Promise<BrowserContextHarExportResult>;
-  createTempFile(params: BrowserContextCreateTempFileParams, metadata?: CallMetadata): Promise<BrowserContextCreateTempFileResult>;
+  createTempFiles(params: BrowserContextCreateTempFilesParams, metadata?: CallMetadata): Promise<BrowserContextCreateTempFilesResult>;
   updateSubscription(params: BrowserContextUpdateSubscriptionParams, metadata?: CallMetadata): Promise<BrowserContextUpdateSubscriptionResult>;
+  clockFastForward(params: BrowserContextClockFastForwardParams, metadata?: CallMetadata): Promise<BrowserContextClockFastForwardResult>;
   clockInstall(params: BrowserContextClockInstallParams, metadata?: CallMetadata): Promise<BrowserContextClockInstallResult>;
-  clockJump(params: BrowserContextClockJumpParams, metadata?: CallMetadata): Promise<BrowserContextClockJumpResult>;
-  clockNext(params?: BrowserContextClockNextParams, metadata?: CallMetadata): Promise<BrowserContextClockNextResult>;
-  clockRunAll(params?: BrowserContextClockRunAllParams, metadata?: CallMetadata): Promise<BrowserContextClockRunAllResult>;
-  clockRunToLast(params?: BrowserContextClockRunToLastParams, metadata?: CallMetadata): Promise<BrowserContextClockRunToLastResult>;
-  clockTick(params: BrowserContextClockTickParams, metadata?: CallMetadata): Promise<BrowserContextClockTickResult>;
+  clockPauseAt(params: BrowserContextClockPauseAtParams, metadata?: CallMetadata): Promise<BrowserContextClockPauseAtResult>;
+  clockResume(params?: BrowserContextClockResumeParams, metadata?: CallMetadata): Promise<BrowserContextClockResumeResult>;
+  clockRunFor(params: BrowserContextClockRunForParams, metadata?: CallMetadata): Promise<BrowserContextClockRunForResult>;
+  clockSetFixedTime(params: BrowserContextClockSetFixedTimeParams, metadata?: CallMetadata): Promise<BrowserContextClockSetFixedTimeResult>;
+  clockSetSystemTime(params: BrowserContextClockSetSystemTimeParams, metadata?: CallMetadata): Promise<BrowserContextClockSetSystemTimeResult>;
 }
 export type BrowserContextBindingCallEvent = {
   binding: BindingCallChannel,
@@ -1736,15 +1739,19 @@ export type BrowserContextHarExportOptions = {
 export type BrowserContextHarExportResult = {
   artifact: ArtifactChannel,
 };
-export type BrowserContextCreateTempFileParams = {
-  name: string,
-  lastModifiedMs?: number,
+export type BrowserContextCreateTempFilesParams = {
+  rootDirName?: string,
+  items: {
+    name: string,
+    lastModifiedMs?: number,
+  }[],
 };
-export type BrowserContextCreateTempFileOptions = {
-  lastModifiedMs?: number,
+export type BrowserContextCreateTempFilesOptions = {
+  rootDirName?: string,
 };
-export type BrowserContextCreateTempFileResult = {
-  writableStream: WritableStreamChannel,
+export type BrowserContextCreateTempFilesResult = {
+  rootDir?: WritableStreamChannel,
+  writableStreams: WritableStreamChannel[],
 };
 export type BrowserContextUpdateSubscriptionParams = {
   event: 'console' | 'dialog' | 'request' | 'response' | 'requestFinished' | 'requestFailed',
@@ -1754,56 +1761,63 @@ export type BrowserContextUpdateSubscriptionOptions = {
 
 };
 export type BrowserContextUpdateSubscriptionResult = void;
+export type BrowserContextClockFastForwardParams = {
+  ticksNumber?: number,
+  ticksString?: string,
+};
+export type BrowserContextClockFastForwardOptions = {
+  ticksNumber?: number,
+  ticksString?: string,
+};
+export type BrowserContextClockFastForwardResult = void;
 export type BrowserContextClockInstallParams = {
-  now?: number,
-  toFake?: string[],
-  loopLimit?: number,
-  shouldAdvanceTime?: boolean,
-  advanceTimeDelta?: number,
+  timeNumber?: number,
+  timeString?: string,
 };
 export type BrowserContextClockInstallOptions = {
-  now?: number,
-  toFake?: string[],
-  loopLimit?: number,
-  shouldAdvanceTime?: boolean,
-  advanceTimeDelta?: number,
+  timeNumber?: number,
+  timeString?: string,
 };
 export type BrowserContextClockInstallResult = void;
-export type BrowserContextClockJumpParams = {
+export type BrowserContextClockPauseAtParams = {
   timeNumber?: number,
   timeString?: string,
 };
-export type BrowserContextClockJumpOptions = {
+export type BrowserContextClockPauseAtOptions = {
   timeNumber?: number,
   timeString?: string,
 };
-export type BrowserContextClockJumpResult = void;
-export type BrowserContextClockNextParams = {};
-export type BrowserContextClockNextOptions = {};
-export type BrowserContextClockNextResult = {
-  fakeTime: number,
+export type BrowserContextClockPauseAtResult = void;
+export type BrowserContextClockResumeParams = {};
+export type BrowserContextClockResumeOptions = {};
+export type BrowserContextClockResumeResult = void;
+export type BrowserContextClockRunForParams = {
+  ticksNumber?: number,
+  ticksString?: string,
 };
-export type BrowserContextClockRunAllParams = {};
-export type BrowserContextClockRunAllOptions = {};
-export type BrowserContextClockRunAllResult = {
-  fakeTime: number,
+export type BrowserContextClockRunForOptions = {
+  ticksNumber?: number,
+  ticksString?: string,
 };
-export type BrowserContextClockRunToLastParams = {};
-export type BrowserContextClockRunToLastOptions = {};
-export type BrowserContextClockRunToLastResult = {
-  fakeTime: number,
-};
-export type BrowserContextClockTickParams = {
+export type BrowserContextClockRunForResult = void;
+export type BrowserContextClockSetFixedTimeParams = {
   timeNumber?: number,
   timeString?: string,
 };
-export type BrowserContextClockTickOptions = {
+export type BrowserContextClockSetFixedTimeOptions = {
   timeNumber?: number,
   timeString?: string,
 };
-export type BrowserContextClockTickResult = {
-  fakeTime: number,
+export type BrowserContextClockSetFixedTimeResult = void;
+export type BrowserContextClockSetSystemTimeParams = {
+  timeNumber?: number,
+  timeString?: string,
 };
+export type BrowserContextClockSetSystemTimeOptions = {
+  timeNumber?: number,
+  timeString?: string,
+};
+export type BrowserContextClockSetSystemTimeResult = void;
 
 export interface BrowserContextEvents {
   'bindingCall': BrowserContextBindingCallEvent;
@@ -1876,6 +1890,7 @@ export interface PageChannel extends PageEventTarget, EventTargetChannel {
   mouseClick(params: PageMouseClickParams, metadata?: CallMetadata): Promise<PageMouseClickResult>;
   mouseWheel(params: PageMouseWheelParams, metadata?: CallMetadata): Promise<PageMouseWheelResult>;
   touchscreenTap(params: PageTouchscreenTapParams, metadata?: CallMetadata): Promise<PageTouchscreenTapResult>;
+  touchscreenTouch(params: PageTouchscreenTouchParams, metadata?: CallMetadata): Promise<PageTouchscreenTouchResult>;
   accessibilitySnapshot(params: PageAccessibilitySnapshotParams, metadata?: CallMetadata): Promise<PageAccessibilitySnapshotResult>;
   pdf(params: PagePdfParams, metadata?: CallMetadata): Promise<PagePdfResult>;
   startJSCoverage(params: PageStartJSCoverageParams, metadata?: CallMetadata): Promise<PageStartJSCoverageResult>;
@@ -2243,6 +2258,18 @@ export type PageTouchscreenTapOptions = {
 
 };
 export type PageTouchscreenTapResult = void;
+export type PageTouchscreenTouchParams = {
+  type: 'touchstart' | 'touchend' | 'touchmove' | 'touchcancel',
+  touchPoints: {
+    x: number,
+    y: number,
+    id?: number,
+  }[],
+};
+export type PageTouchscreenTouchOptions = {
+
+};
+export type PageTouchscreenTouchResult = void;
 export type PageAccessibilitySnapshotParams = {
   interestingOnly?: boolean,
   root?: ElementHandleChannel,
@@ -2910,6 +2937,8 @@ export type FrameSetInputFilesParams = {
     mimeType?: string,
     buffer: Binary,
   }[],
+  localDirectory?: string,
+  directoryStream?: WritableStreamChannel,
   localPaths?: string[],
   streams?: WritableStreamChannel[],
   timeout?: number,
@@ -2922,6 +2951,8 @@ export type FrameSetInputFilesOptions = {
     mimeType?: string,
     buffer: Binary,
   }[],
+  localDirectory?: string,
+  directoryStream?: WritableStreamChannel,
   localPaths?: string[],
   streams?: WritableStreamChannel[],
   timeout?: number,
@@ -3534,6 +3565,8 @@ export type ElementHandleSetInputFilesParams = {
     mimeType?: string,
     buffer: Binary,
   }[],
+  localDirectory?: string,
+  directoryStream?: WritableStreamChannel,
   localPaths?: string[],
   streams?: WritableStreamChannel[],
   timeout?: number,
@@ -3545,6 +3578,8 @@ export type ElementHandleSetInputFilesOptions = {
     mimeType?: string,
     buffer: Binary,
   }[],
+  localDirectory?: string,
+  directoryStream?: WritableStreamChannel,
   localPaths?: string[],
   streams?: WritableStreamChannel[],
   timeout?: number,

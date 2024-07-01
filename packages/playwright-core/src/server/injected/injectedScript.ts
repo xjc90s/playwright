@@ -33,7 +33,7 @@ import { getChecked, getAriaDisabled, getAriaRole, getElementAccessibleName, get
 import { kLayoutSelectorNames, type LayoutSelectorName, layoutSelectorScore } from './layoutSelectorUtils';
 import { asLocator } from '../../utils/isomorphic/locatorGenerators';
 import type { Language } from '../../utils/isomorphic/locatorGenerators';
-import { normalizeWhiteSpace, trimStringWithEllipsis } from '../../utils/isomorphic/stringUtils';
+import { cacheNormalizedWhitespaces, normalizeWhiteSpace, trimStringWithEllipsis } from '../../utils/isomorphic/stringUtils';
 
 export type FrameExpectParams = Omit<channels.FrameExpectParams, 'expectedValue'> & { expectedValue?: any };
 
@@ -66,7 +66,7 @@ export class InjectedScript {
   // eslint-disable-next-line no-restricted-globals
   readonly window: Window & typeof globalThis;
   readonly document: Document;
-  readonly utils = { isInsideScope, elementText, asLocator, normalizeWhiteSpace };
+  readonly utils = { isInsideScope, elementText, asLocator, normalizeWhiteSpace, cacheNormalizedWhitespaces };
 
   // eslint-disable-next-line no-restricted-globals
   constructor(window: Window & typeof globalThis, isUnderTest: boolean, sdkLanguage: Language, testIdAttributeNameForStrictErrorAndConsoleCodegen: string, stableRafCount: number, browserName: string, customEngines: { name: string, engine: SelectorEngine }[]) {
@@ -125,14 +125,14 @@ export class InjectedScript {
   }
 
   builtinSetTimeout(callback: Function, timeout: number) {
-    if (this.window.__pwFakeTimers?.builtin)
-      return this.window.__pwFakeTimers.builtin.setTimeout(callback, timeout);
+    if (this.window.__pwClock?.builtin)
+      return this.window.__pwClock.builtin.setTimeout(callback, timeout);
     return setTimeout(callback, timeout);
   }
 
   builtinRequestAnimationFrame(callback: FrameRequestCallback) {
-    if (this.window.__pwFakeTimers?.builtin)
-      return this.window.__pwFakeTimers.builtin.requestAnimationFrame(callback);
+    if (this.window.__pwClock?.builtin)
+      return this.window.__pwClock.builtin.requestAnimationFrame(callback);
     return requestAnimationFrame(callback);
   }
 
@@ -478,7 +478,7 @@ export class InjectedScript {
         element = element.closest('button, [role=button], [role=checkbox], [role=radio]') || element;
     }
     if (behavior === 'follow-label') {
-      if (!element.matches('input, textarea, button, select, [role=button], [role=checkbox], [role=radio]') &&
+      if (!element.matches('a, input, textarea, button, select, [role=link], [role=button], [role=checkbox], [role=radio]') &&
         !(element as any).isContentEditable) {
         // Go up to the label that might be connected to the input/textarea.
         element = element.closest('label') || element;
@@ -1525,7 +1525,7 @@ function deepEquals(a: any, b: any): boolean {
 
 declare global {
   interface Window {
-    __pwFakeTimers?: {
+    __pwClock?: {
       builtin: {
         setTimeout: Window['setTimeout'],
         requestAnimationFrame: Window['requestAnimationFrame'],
