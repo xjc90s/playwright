@@ -137,7 +137,8 @@ test('daemon show: closing page exits the process', async ({ cli, connectToDashb
 
 async function drawAndSubmitAnnotation(dashboard: import('playwright-core').Page, text: string) {
   await expect(dashboard.getByRole('main', { name: 'Dashboard: annotate' })).toBeVisible();
-  const box = await dashboard.locator('img#display').boundingBox();
+  await expect(dashboard.locator('.annotate-modal-image')).toBeVisible();
+  const box = await dashboard.locator('.annotate-modal-image').boundingBox();
   const x0 = box!.x + box!.width * 0.3;
   const y0 = box!.y + box!.height * 0.3;
   const x1 = box!.x + box!.width * 0.6;
@@ -226,6 +227,39 @@ test('should enter annotate mode on fresh dashboard.tsx mount with -s --annotate
   const { exitCode } = await annotatePromise;
   expect(done).toBe(true);
   expect(exitCode).toBe(0);
+});
+
+test('should annotate via direct browser_annotate MCP call', async ({ connectToDashboard, boundBrowser, startClient, cliEnv, server }) => {
+  const page = await boundBrowser.newPage();
+  await page.goto(server.EMPTY_PAGE);
+
+  const bindTitle = `--playwright-internal--${crypto.randomUUID()}`;
+  const { client } = await startClient({
+    args: ['--endpoint=default', '--caps=devtools'],
+    env: {
+      ...cliEnv,
+      PWTEST_DASHBOARD_APP_BIND_TITLE: bindTitle,
+    },
+  });
+
+  const annotatePromise = client.callTool({ name: 'browser_annotate' });
+  let done = false;
+  void annotatePromise.then(() => { done = true; });
+
+  const browser = await connectToDashboard(bindTitle);
+  try {
+    const dashboard = browser.contexts()[0].pages()[0];
+    await expect(dashboard.getByRole('main', { name: 'Dashboard: annotate' })).toBeVisible();
+    await drawAndSubmitAnnotation(dashboard, 'direct-mcp');
+  } finally {
+    await browser.close().catch(() => {});
+  }
+
+  const result = await annotatePromise;
+  expect(done).toBe(true);
+  const text = (result.content as any).map(c => c.text ?? '').join('\n');
+  expect(text).toMatch(/\{ x: \d+, y: \d+, width: \d+, height: \d+ \}: direct-mcp/);
+  expect(text).toMatch(/- \[Annotation image\]\(.*\.png\)/);
 });
 
 test('should switch screencast to -s session on show --annotate', async ({ connectToDashboard, cli, server }) => {
