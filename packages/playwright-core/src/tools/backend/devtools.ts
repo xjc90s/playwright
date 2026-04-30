@@ -124,7 +124,7 @@ const annotate = defineTabTool({
     type: 'readOnly',
   },
 
-  handle: async (tab, params, response) => {
+  handle: async (tab, params, response, signal) => {
     // eslint-disable-next-line no-restricted-syntax -- _guid is the cross-process page identifier shared with the dashboard daemon.
     const pageId = (tab.page as any)._guid as string;
     const daemonScript = libPath('entry', 'dashboardApp.js');
@@ -138,9 +138,16 @@ const annotate = defineTabTool({
     const client = spawn(process.execPath, [...daemonArgs, '--annotate', '--json'], {
       stdio: ['pipe', 'pipe', 'inherit'],
     });
+    const onAbort = () => client.kill();
+    signal?.addEventListener('abort', onAbort);
     const stdoutChunks: Buffer[] = [];
     client.stdout!.on('data', chunk => stdoutChunks.push(chunk));
     const exitCode = await new Promise<number | null>(resolve => client.on('exit', code => resolve(code)));
+    signal?.removeEventListener('abort', onAbort);
+    if (signal?.aborted) {
+      response.addTextResult('Annotation cancelled.');
+      return;
+    }
     if (exitCode !== 0) {
       response.addError(`Annotation client exited with code ${exitCode}`);
       return;
