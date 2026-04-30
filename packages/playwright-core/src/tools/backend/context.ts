@@ -15,13 +15,14 @@
  */
 
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 import debug from 'debug';
 import { escapeWithQuotes } from '@isomorphic/stringUtils';
 import { disposeAll } from '@isomorphic/disposable';
 import { eventsHelper } from '@utils/eventsHelper';
-import { isPathInside } from '@utils/fileUtils';
+import { isPathInside, isSystemDirectory, isWritable } from '@utils/fileUtils';
 import { playwright } from '../../inprocess';
 
 import { Tab } from './tab';
@@ -387,7 +388,10 @@ export async function workspaceFile(options: ContextOptions, fileName: string, p
 export function outputDir(options: ContextOptions): string {
   if (options.config.outputDir)
     return path.resolve(options.config.outputDir);
-  return path.resolve(options.cwd, options.config.skillMode ? '.playwright-cli' : '.playwright-mcp');
+  const baseName = options.config.skillMode ? '.playwright-cli' : '.playwright-mcp';
+  if (isSystemDirectory(options.cwd) || !isWritable(options.cwd))
+    return path.join(os.tmpdir(), baseName);
+  return path.join(options.cwd, baseName);
 }
 
 export async function outputFile(options: ContextOptions, fileName: string, flags: { origin: 'code' | 'llm' }): Promise<string> {
