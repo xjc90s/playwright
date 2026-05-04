@@ -19696,10 +19696,20 @@ export interface ConsoleMessage {
     /**
      * 0-based line number in the resource.
      */
-    lineNumber: number;
+    line: number;
 
     /**
      * 0-based column number in the resource.
+     */
+    column: number;
+
+    /**
+     * 0-based line number in the resource. Deprecated, use `line` instead.
+     */
+    lineNumber: number;
+
+    /**
+     * 0-based column number in the resource. Deprecated, use `column` instead.
      */
     columnNumber: number;
   };
