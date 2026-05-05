@@ -474,6 +474,28 @@ async function installSaveFilePickerMock(page: import('playwright-core').Page): 
   };
 }
 
+test('should allow typing in omnibox in interactive mode', async ({ cli, server, startDashboardServer }) => {
+  server.setContent('/page1', '<html><body>Page 1</body></html>', 'text/html');
+  server.setContent('/page2', '<html><body>Page 2</body></html>', 'text/html');
+  await cli('open', server.PREFIX + '/page1');
+
+  const dashboard = await startDashboardServer();
+  await dashboard.getByRole('navigation', { name: 'Sessions' }).getByRole('option').first().click();
+  await expect(dashboard.locator('#omnibox')).toHaveValue(/page1/);
+
+  // Enter interactive mode.
+  await dashboard.getByRole('button', { name: 'Enable interactive mode' }).click();
+  await expect(dashboard.getByRole('main')).toHaveClass(/interactive/);
+
+  const schemeless = `${server.HOST}/page2`;
+  await dashboard.locator('#omnibox').click();
+  await dashboard.locator('#omnibox').fill(schemeless);
+  await expect(dashboard.locator('#omnibox')).toHaveValue(schemeless);
+
+  await dashboard.locator('#omnibox').press('Enter');
+  await expect(dashboard.locator('#omnibox')).toHaveValue(server.PREFIX + '/page2', { timeout: 10000 });
+});
+
 test('save recording streams WebM bytes to the chosen file', async ({ cli, server, page, startDashboardServer }) => {
   await cli('open', server.EMPTY_PAGE);
   const awaitBytes = await installSaveFilePickerMock(page);
