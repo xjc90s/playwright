@@ -26,13 +26,12 @@ import { libPath } from '../../package';
 import { playwright } from '../../inprocess';
 import { findChromiumChannelBestEffort, registryDirectory } from '../../server/registry/index';
 import { minimist } from '../cli-client/minimist';
-import { saveOutputFile } from '../trace/traceUtils';
 import { DashboardConnection } from './dashboardController';
 import { RegistrySessionProvider } from './registrySessionProvider';
 import { IdentitySessionProvider } from './identitySessionProvider';
 
 import type * as api from '../../..';
-import type { AnnotationData } from '@dashboard/dashboardChannel';
+import type { SubmittedAnnotationFrame } from '@dashboard/dashboardChannel';
 import type { SessionProvider } from './sessionProvider';
 
 // HMR: build-time flag — `true` in watch builds, `false` in release. esbuild
@@ -57,10 +56,10 @@ async function startDashboardServer(provider: SessionProvider, options: Dashboar
   let pendingAnnotate = false;
   const waitingSockets = new Set<net.Socket>();
 
-  const submitAnnotation = (base64Png: string | undefined, ariaSnapshot: string, annotations: AnnotationData[]) => {
+  const submitAnnotation = (frames: SubmittedAnnotationFrame[], feedback: string) => {
     if (waitingSockets.size === 0)
       return;
-    const payload = JSON.stringify({ png: base64Png, ariaSnapshot, annotations });
+    const payload = JSON.stringify({ frames, feedback });
     for (const socket of waitingSockets) {
       socket.write(payload);
       socket.end();
@@ -251,13 +250,12 @@ type DashboardOptions = {
   pageId?: string;
   kill?: boolean;
   annotate?: boolean;
-  json?: boolean;
   port?: number;
   host?: string;
 };
 
 function parseOpenArgs(): DashboardOptions {
-  const args = minimist(process.argv.slice(2), { string: ['sessionName', 'workspaceDir', 'host', 'pageId'], boolean: ['annotate', 'kill', 'json'] });
+  const args = minimist(process.argv.slice(2), { string: ['sessionName', 'workspaceDir', 'host', 'pageId'], boolean: ['annotate', 'kill'] });
   const portStr = args.port as string | undefined;
   return {
     sessionName: args.sessionName as string | undefined,
@@ -266,7 +264,6 @@ function parseOpenArgs(): DashboardOptions {
     port: portStr !== undefined ? Number(portStr) : undefined,
     host: args.host as string | undefined,
     annotate: !!args.annotate,
-    json: !!args.json,
     kill: !!args.kill,
   };
 }
@@ -429,27 +426,8 @@ async function runAnnotateClient(options: DashboardOptions): Promise<void> {
   const text = Buffer.concat(chunks).toString();
   if (!text)
     return;
-  if (options.json) {
-    // eslint-disable-next-line no-console
-    console.log(text);
-    return;
-  }
-  const { png, annotations, ariaSnapshot } = JSON.parse(text) as { png: string; annotations: AnnotationData[], ariaSnapshot: string };
-  for (const a of annotations) {
-    // eslint-disable-next-line no-console
-    console.log(`{ x: ${a.x}, y: ${a.y}, width: ${a.width}, height: ${a.height} }: ${a.text}`);
-  }
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  if (png) {
-    const filePath = await saveOutputFile(`annotations-${timestamp}.png`, Buffer.from(png, 'base64'));
-    // eslint-disable-next-line no-console
-    console.log(`image: ${path.relative(process.cwd(), filePath)}`);
-  }
-  if (ariaSnapshot) {
-    const filePath = await saveOutputFile(`annotations-${timestamp}.yaml`, ariaSnapshot);
-    // eslint-disable-next-line no-console
-    console.log(`snapshot: ${path.relative(process.cwd(), filePath)}`);
-  }
+  // eslint-disable-next-line no-console
+  console.log(text);
 }
 
 function selfDestructOnParentGone() {
