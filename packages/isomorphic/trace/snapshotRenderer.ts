@@ -140,6 +140,10 @@ export class SnapshotRenderer {
             // crafted trace could include them.
             attrName = '__playwright_' + attr.toLowerCase() + '__';
           }
+          if (upperName === 'OBJECT' && attr.toLowerCase() === 'data')
+            attrName = '__playwright_data__';
+          if (upperName === 'EMBED' && attr.toLowerCase() === 'src')
+            attrName = '__playwright_src__';
           if (isImg && attr === kCurrentSrcAttribute) {
             // Render currentSrc for images, so that trace viewer does not accidentally
             // resolve srcset to a different source.
