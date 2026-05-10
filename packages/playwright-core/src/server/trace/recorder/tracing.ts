@@ -492,11 +492,11 @@ export class Tracing extends SdkObject implements InstrumentationListener, Snaps
     return this._captureSnapshot(event.beforeSnapshot, sdkObject, metadata);
   }
 
-  onBeforeInputAction(sdkObject: SdkObject, metadata: CallMetadata) {
+  onBeforeInputAction(sdkObject: SdkObject, metadata: CallMetadata, point?: types.Point) {
     // IMPORTANT: no awaits in this method, this._appendTraceEvent must be called synchronously.
     if (!this._state?.callIds.has(metadata.id))
       return Promise.resolve();
-    const event = createInputActionTraceEvent(metadata);
+    const event = createInputActionTraceEvent(metadata, point);
     if (!event)
       return Promise.resolve();
     this._temporarilyDisableThrottling(sdkObject.attribution.page);
@@ -736,13 +736,13 @@ function createBeforeActionTraceEvent(metadata: CallMetadata, parentId?: string)
   return event;
 }
 
-function createInputActionTraceEvent(metadata: CallMetadata): trace.InputActionTraceEvent | null {
+function createInputActionTraceEvent(metadata: CallMetadata, point: types.Point | undefined): trace.InputActionTraceEvent | null {
   if (metadata.internal || metadata.method.startsWith('tracing'))
     return null;
   return {
     type: 'input',
     callId: metadata.id,
-    point: metadata.point,
+    point,
   };
 }
 
@@ -766,7 +766,6 @@ function createAfterActionTraceEvent(metadata: CallMetadata): trace.AfterActionT
     endTime: metadata.endTime,
     error: metadata.error?.error,
     result: metadata.result,
-    point: metadata.point,
   };
 }
 
