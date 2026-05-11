@@ -311,15 +311,44 @@ export async function openDashboardApp() {
     selfDestructOnParentGone();
     return;
   }
-  let server: net.Server | undefined;
-  process.on('exit', () => server?.close());
+  // Self-destruct if the parent CLI dies before we signal READY. Unregistered
+  // before we signal so the daemon outlives the parent.
+  const stopSelfDestruct = selfDestructOnParentGone();
+  let server: net.Server;
   try {
     server = await acquireSingleton(options);
   } catch {
+    // Another daemon is already running; acquireSingleton forwarded our
+    // options to it. Signal success so the parent doesn't treat our clean
+    // exit as a startup failure.
+    stopSelfDestruct();
+    // eslint-disable-next-line no-console
+    console.log('### Success\nDashboard already running');
+    // eslint-disable-next-line no-console
+    console.log('<EOF>');
     return;
   }
+  process.on('exit', () => server.close());
+  try {
+    await startApp(server, options);
+    stopSelfDestruct();
+    // eslint-disable-next-line no-console
+    console.log('### Success\nDashboard ready');
+    // eslint-disable-next-line no-console
+    console.log('<EOF>');
+  } catch (error) {
+    const message = (error as Error).stack || (error as Error).message;
+    // eslint-disable-next-line no-console
+    console.log(`### Error\n${message}`);
+    // eslint-disable-next-line no-console
+    console.log('<EOF>');
+    gracefullyProcessExitDoNotHang(1);
+  }
+}
+
+async function startApp(server: net.Server, options: DashboardOptions) {
   const statePromise = innerOpenDashboardApp(options);
-  server?.on('connection', socket => {
+  server.on('connection', socket => {
     let buffer = '';
     socket.on('data', data => {
       buffer += data.toString();
@@ -356,7 +385,6 @@ export async function openDashboardApp() {
     });
   });
   await statePromise;
-  try { fs.writeSync(3, '.'); fs.closeSync(3); } catch {}
 }
 
 export async function openDashboardForContext(context: api.BrowserContext): Promise<void> {
@@ -426,8 +454,8 @@ async function runAnnotateClient(options: DashboardOptions): Promise<void> {
   console.log(text);
 }
 
-function selfDestructOnParentGone() {
-  process.stdin.on('close', () => {
-    gracefullyProcessExitDoNotHang(0);
-  });
+function selfDestructOnParentGone(): () => void {
+  const onClose = () => gracefullyProcessExitDoNotHang(0);
+  process.stdin.on('close', onClose);
+  return () => process.stdin.off('close', onClose);
 }
