@@ -74,6 +74,26 @@ function escapeRegex(text: string) {
   return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function renderStatusLine(progress: TeleSuiteUpdaterProgress, total: number, isRunning: boolean) {
+  const finished = progress.passed + progress.failed + progress.skipped;
+  const pct = total ? (finished / total) * 100 | 0 : 0;
+  const counts: React.ReactNode[] = [];
+  if (progress.passed > 0)
+    counts.push(`${progress.passed} passed`);
+  if (progress.failed > 0)
+    counts.push(<span key='failed' className='status-line-failed'>{progress.failed} failed</span>);
+  if (progress.skipped > 0)
+    counts.push(`${progress.skipped} skipped`);
+  return <div data-testid='status-line' className='status-line'>
+    <div>
+      {isRunning && 'Running '}
+      {finished}/{total} ({pct}%)
+      {counts.length > 0 && ' — '}
+      {counts.map((count, i) => <React.Fragment key={i}>{i > 0 ? ', ' : ''}{count}</React.Fragment>)}
+    </div>
+  </div>;
+}
+
 export const UIModeView: React.FC<{}> = ({
 }) => {
   const [filterText, setFilterText] = React.useState<string>('');
@@ -486,12 +506,7 @@ export const UIModeView: React.FC<{}> = ({
           runTests={runVisibleTests} />
         <Toolbar className='section-toolbar' noMinHeight={true}>
           {!isRunningTest && !progress && <div className='section-title'>Tests</div>}
-          {!isRunningTest && progress && <div data-testid='status-line' className='status-line'>
-            <div>{progress.passed}/{progress.total} passed ({(progress.passed / progress.total) * 100 | 0}%)</div>
-          </div>}
-          {isRunningTest && progress && <div data-testid='status-line' className='status-line'>
-            <div>Running {progress.passed}/{runningState.testIds.size} passed ({(progress.passed / runningState.testIds.size) * 100 | 0}%)</div>
-          </div>}
+          {progress && renderStatusLine(progress, isRunningTest ? runningState.testIds.size : progress.total, !!isRunningTest)}
           <ToolbarButton icon='play' title='Run all — F5' onClick={runVisibleTests} disabled={isRunningTest || isLoading}></ToolbarButton>
           <ToolbarButton icon='debug-stop' title={'Stop — ' + (isMac ? '⇧F5' : 'Shift + F5')} onClick={() => testServerConnection?.stopTests({})} disabled={!isRunningTest || isLoading} testId={'stop-button'}></ToolbarButton>
           <ToolbarButton icon='eye' title='Watch all' toggled={watchAll} onClick={() => {
