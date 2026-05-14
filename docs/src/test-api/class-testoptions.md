@@ -540,7 +540,8 @@ test('not signed in test', async ({ page }) => {
 ## property: TestOptions.testIdAttribute
 * since: v1.27
 
-Custom attribute to be used in [`method: Page.getByTestId`]. `data-testid` is used by default.
+Custom attribute to be used in [`method: Page.getByTestId`]. `data-testid` is used by default. To match
+elements with any of several attributes, pass them as a comma-separated list.
 
 **Usage**
 
@@ -550,6 +551,18 @@ import { defineConfig } from '@playwright/test';
 export default defineConfig({
   use: {
     testIdAttribute: 'pw-test-id',
+  },
+});
+```
+
+Multiple attributes:
+
+```js title="playwright.config.ts"
+import { defineConfig } from '@playwright/test';
+
+export default defineConfig({
+  use: {
+    testIdAttribute: 'data-pw,data-ti',
   },
 });
 ```
