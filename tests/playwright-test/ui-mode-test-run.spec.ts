@@ -103,6 +103,25 @@ test('should show running progress', async ({ runUITest }) => {
   await expect(page.getByTestId('status-line')).toBeHidden();
 });
 
+test('should stop on first failure', async ({ runUITest }) => {
+  const { page } = await runUITest({
+    'a.test.ts': `
+      import { test, expect } from '@playwright/test';
+      test('test 1', async () => {});
+      test('test 2', async () => { expect(1).toBe(2); });
+      test('test 3', async () => {});
+      test('test 4', async () => {});
+    `,
+  });
+
+  await page.getByText('Testing Options').click();
+  await page.getByLabel('Stop on first failure').check();
+
+  await page.getByTitle('Run all').click();
+  // After test 2 fails, the runner stops dispatching: tests 3 and 4 never start.
+  await expect(page.getByTestId('status-line')).toHaveText('2/4 (50%) — 1 passed, 1 failed');
+});
+
 test('should run on hover', async ({ runUITest }) => {
   const { page } = await runUITest({
     'a.test.ts': `

@@ -130,6 +130,7 @@ export const UIModeView: React.FC<{}> = ({
   const [singleWorker, setSingleWorker] = useSetting<boolean>('single-worker', false);
   const [updateSnapshots, setUpdateSnapshots] = useSetting<reporterTypes.FullConfig['updateSnapshots']>('updateSnapshots', 'missing');
   const [onlyChanged, setOnlyChanged] = useSetting<boolean>('only-changed', false);
+  const [stopOnFailure, setStopOnFailure] = useSetting<boolean>('stop-on-failure', false);
   const [mergeFiles] = useSetting('mergeFiles', false);
 
   const inputRef = React.useRef<HTMLInputElement>(null);
@@ -320,6 +321,7 @@ export const UIModeView: React.FC<{}> = ({
         updateSnapshots,
         reporters: queryParams.reporters,
         workers: singleWorker ? 1 : undefined,
+        maxFailures: stopOnFailure ? 1 : undefined,
         trace: 'on',
       });
       // Clear pending tests in case of interrupt.
@@ -330,7 +332,7 @@ export const UIModeView: React.FC<{}> = ({
       setTestModel({ ...testModel });
       setRunningState(oldState => oldState ? ({ ...oldState, completed: true }) : undefined);
     });
-  }, [projectFilters, isRunningTest, testModel, testServerConnection, updateSnapshots, singleWorker]);
+  }, [projectFilters, isRunningTest, testModel, testServerConnection, updateSnapshots, singleWorker, stopOnFailure]);
 
   const runVisibleTests = React.useCallback(() => runTests('bounce-if-busy', testTree.collectTestIds(testTree.rootItem)), [runTests, testTree]);
 
@@ -547,6 +549,7 @@ export const UIModeView: React.FC<{}> = ({
         </Toolbar>
         {testingOptionsVisible && <SettingsView settings={[
           { type: 'check', value: singleWorker, set: setSingleWorker, name: 'Single worker' },
+          { type: 'check', value: stopOnFailure, set: setStopOnFailure, name: 'Stop on first failure' },
           { type: 'select', options: [
             { label: 'All', value: 'all' },
             { label: 'Changed', value: 'changed' },
