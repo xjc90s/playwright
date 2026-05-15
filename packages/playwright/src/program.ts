@@ -51,8 +51,14 @@ function addTestCommand(program: Command) {
     return command;
   });
   command.action(async (args, opts) => {
+    // Args supplied after `--` are appended to the variadic [test-filter...]
+    // by commander. Strip them so they aren't used as filter regexes; users
+    // who need to read them go through FullConfig.argv (full process.argv).
+    const dashDashIndex = process.argv.indexOf('--');
+    const postDashCount = dashDashIndex >= 0 ? process.argv.length - 1 - dashDashIndex : 0;
+    const testFilters = args.slice(0, args.length - postDashCount);
     try {
-      await runTests(args, opts);
+      await runTests(testFilters, opts);
     } catch (e) {
       console.error(e);
       gracefullyProcessExitDoNotHang(1);
