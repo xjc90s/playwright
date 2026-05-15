@@ -229,7 +229,8 @@ export class DispatcherConnection {
   private _validatorToWireContext(): ValidatorContext {
     return {
       tChannelImpl: this._tChannelImplToWire.bind(this),
-      binary: this._isLocal ? 'buffer' : 'toBase64',
+      direction: 'toWire',
+      rawBuffers: this._isLocal,
       isUnderTest,
     };
   }
@@ -237,7 +238,8 @@ export class DispatcherConnection {
   private _validatorFromWireContext(): ValidatorContext {
     return {
       tChannelImpl: this._tChannelImplFromWire.bind(this),
-      binary: this._isLocal ? 'buffer' : 'fromBase64',
+      direction: 'fromWire',
+      rawBuffers: this._isLocal,
       isUnderTest,
     };
   }
@@ -358,7 +360,7 @@ export class DispatcherConnection {
       const result = await dispatcher._runCommand(callMetadata, method, validParams);
       const validator = findValidator(dispatcher._type, method, 'Result');
       response.result = validator(result, '', this._validatorToWireContext());
-      callMetadata.result = result;
+      callMetadata.result = response.result; // Use the wire-format result for the trace recorder.
     } catch (e) {
       if (isTargetClosedError(e)) {
         const reason = sdkObject.closeReason();
