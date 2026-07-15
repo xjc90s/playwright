@@ -220,11 +220,14 @@ export async function createRootSuite(testRun: TestRun, errors: TestError[], sho
     const finalProjectClosure = buildProjectsClosure(rootSuite.suites.map(suite => suite._fullProject!));
     for (const [project, type] of finalProjectClosure) {
       if (type === 'dependency')
-        rootSuite._prependSuite(dependencySuites.get(project)!);
+        rootSuite._addSuite(dependencySuites.get(project)!);
       else
         topLevelProjects.push(project);
     }
   }
+
+  // Keep project suites in the order they are declared in the config.
+  rootSuite._entries.sort((a, b) => config.projects.indexOf((a as testNs.Suite)._fullProject!) - config.projects.indexOf((b as testNs.Suite)._fullProject!));
 
   testRun.rootSuite = rootSuite;
   testRun.topLevelProjects = topLevelProjects;
