@@ -27,11 +27,19 @@ type Status =
 
 const SUPPORTED_PROTOCOL_VERSION = 2;
 
+// Client name comes from the URL and never changes for the lifetime of this page.
+const clientInfo = (() => {
+  try {
+    return JSON.parse(new URLSearchParams(window.location.search).get('client') || '{}').name || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+})();
+
 const ConnectApp: React.FC = () => {
   const [tabs, setTabs] = useState<chrome.tabs.Tab[]>([]);
   const [status, setStatus] = useState<Status | null>(null);
   const [showTabList, setShowTabList] = useState(true);
-  const [clientInfo, setClientInfo] = useState('unknown');
 
   const setError = useCallback((message: string) => {
     setShowTabList(false);
@@ -59,18 +67,10 @@ const ConnectApp: React.FC = () => {
         return;
       }
 
-      try {
-        const client = JSON.parse(params.get('client') || '{}');
-        const info = `${client.name || 'unknown'}`;
-        setClientInfo(info);
-        setStatus({
-          type: 'connecting',
-          message: `"${info}" is trying to connect to the Playwright Extension.`
-        });
-      } catch (e) {
-        setStatus({ type: 'error', message: 'Failed to parse client version.' });
-        return;
-      }
+      setStatus({
+        type: 'connecting',
+        message: `"${clientInfo}" is trying to connect to the Playwright Extension.`
+      });
 
       const parsedVersion = parseInt(params.get('protocolVersion') ?? '', 10);
       const requestedVersion = isNaN(parsedVersion) ? 1 : parsedVersion;
@@ -152,7 +152,7 @@ const ConnectApp: React.FC = () => {
         message: `"${clientInfo}" failed to connect: ${e}`
       });
     }
-  }, [clientInfo]);
+  }, []);
 
   return (
     <div className='app-container'>
