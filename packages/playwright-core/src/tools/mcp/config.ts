@@ -74,6 +74,7 @@ export type CLIOptions = {
   testIdAttribute?: string;
   timeoutAction?: number;
   timeoutNavigation?: number;
+  timeoutSettle?: number;
   userAgent?: string;
   userDataDir?: string;
   viewportSize?: ViewportSize;
@@ -88,6 +89,7 @@ const defaultConfig: MergedConfig = {
     action: 5000,
     navigation: 60000,
     expect: 5000,
+    settle: 500,
   },
 };
 
@@ -378,6 +380,7 @@ function configFromCLIOptions(cliOptions: CLIOptions): Config & { configFile?: s
     timeouts: {
       action: cliOptions.timeoutAction,
       navigation: cliOptions.timeoutNavigation,
+      settle: cliOptions.timeoutSettle,
     },
   };
 
@@ -434,6 +437,7 @@ export function configFromEnv(env?: NodeJS.ProcessEnv): Config & { configFile?: 
   options.testIdAttribute = envToString(e.PLAYWRIGHT_MCP_TEST_ID_ATTRIBUTE);
   options.timeoutAction = numberParser(e.PLAYWRIGHT_MCP_TIMEOUT_ACTION);
   options.timeoutNavigation = numberParser(e.PLAYWRIGHT_MCP_TIMEOUT_NAVIGATION);
+  options.timeoutSettle = numberParser(e.PLAYWRIGHT_MCP_TIMEOUT_SETTLE);
   options.userAgent = envToString(e.PLAYWRIGHT_MCP_USER_AGENT);
   options.userDataDir = envToString(e.PLAYWRIGHT_MCP_USER_DATA_DIR);
   options.viewportSize = resolutionParser('--viewport-size', e.PLAYWRIGHT_MCP_VIEWPORT_SIZE);
